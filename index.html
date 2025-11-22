@@ -9,14 +9,15 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="DiscogStats" />
 
-    <!-- Android System Bar Colors (This hides/blends the bottom nav bar) -->
+    <!-- Android System Bar Colors (Matches BottomNav color #181818) -->
     <meta name="theme-color" content="#181818" media="(prefers-color-scheme: dark)">
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 
     <title>DiscogStats</title>
     <link rel="manifest" href="/manifest.json" />
-    <!-- Green Musical Note Icon -->
-    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/461/461146.png" />
+    
+    <!-- Premium Icon: Green Circle with White Note (Cleaner look) -->
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2402/2402462.png" />
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -38,7 +39,7 @@
               },
               dark: {
                 900: '#121212',
-                800: '#181818',
+                800: '#181818', // Matches system bar
                 700: '#282828',
               },
               yt: {
@@ -56,6 +57,7 @@
         overflow-x: hidden;
         /* Prevent white background flashing on overscroll */
         background-color: #121212; 
+        overscroll-behavior-y: none; /* Prevents bounce effect revealing white background */
       }
       
       /* Safe area padding for iPhone notch/home bar */

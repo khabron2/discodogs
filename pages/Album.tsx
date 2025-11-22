@@ -125,7 +125,7 @@ const Album: React.FC = () => {
                 onClick={openYouTubeMusic}
                 className="flex items-center px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs font-bold text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
-                <Music size={16} className="mr-2 text-red-600" />
+                <Music size={16} className="mr-2 text-brand-500" />
                 YouTube Music
               </button>
             </div>
@@ -137,12 +137,12 @@ const Album: React.FC = () => {
           {tracks.map((track) => {
              const currentScore = ratings[track.id] || 0;
              return (
-               <div key={track.id} className="bg-white dark:bg-dark-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-dark-700 transition-colors">
-                 <div className="flex justify-between items-start mb-3">
+               <div key={track.id} className="bg-white dark:bg-dark-800 rounded-xl p-3 shadow-sm border border-gray-100 dark:border-dark-700 transition-colors">
+                 <div className="flex justify-between items-start mb-2">
                    <div>
-                     <h3 className="font-medium text-gray-900 dark:text-white">{track.name}</h3>
-                     <div className="flex items-center text-xs text-gray-500 mt-1">
-                       <span className="bg-gray-100 dark:bg-dark-700 px-1.5 py-0.5 rounded mr-2">{track.track_number}</span>
+                     <h3 className="font-medium text-sm text-gray-900 dark:text-white leading-tight">{track.name}</h3>
+                     <div className="flex items-center text-[10px] text-gray-500 mt-1">
+                       <span className="bg-gray-100 dark:bg-dark-700 px-1 py-0.5 rounded mr-2 opacity-80">{track.track_number}</span>
                        {Math.floor(track.duration_ms / 60000)}:{(Math.floor((track.duration_ms % 60000) / 1000)).toString().padStart(2, '0')}
                      </div>
                    </div>
@@ -154,23 +154,23 @@ const Album: React.FC = () => {
                         className="text-brand-500 hover:text-brand-600"
                         title="Listen to preview"
                      >
-                       <Play size={20} fill="currentColor" />
+                       <Play size={18} fill="currentColor" />
                      </a>
                    )}
                  </div>
                  
-                 {/* Rating UI */}
-                 <div className="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-dark-700">
-                   <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</span>
-                   <div className="flex space-x-1 overflow-x-auto pb-1">
+                 {/* Rating UI - Compact Bar */}
+                 <div className="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-dark-700 mt-1">
+                   <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mr-3 w-6">Rate</span>
+                   <div className="flex-1 flex gap-[2px]">
                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => (
                        <button
                          key={score}
                          onClick={() => handleRate(track, score)}
-                         className={`min-w-[24px] h-8 flex items-center justify-center rounded text-[10px] font-bold transition-all ${
+                         className={`flex-1 h-6 rounded-[3px] flex items-center justify-center text-[9px] font-bold transition-all ${
                            currentScore >= score
-                             ? 'bg-brand-500 text-white scale-110 shadow-sm'
-                             : 'bg-gray-100 dark:bg-dark-700 text-gray-400 hover:bg-gray-200 dark:hover:bg-dark-600'
+                             ? 'bg-brand-500 text-white shadow-sm'
+                             : 'bg-gray-100 dark:bg-dark-700 text-gray-300 dark:text-gray-600 hover:bg-gray-200 dark:hover:bg-dark-600'
                          }`}
                        >
                          {score}
