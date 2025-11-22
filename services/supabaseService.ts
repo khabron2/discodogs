@@ -48,7 +48,9 @@ export const upsertRating = async (rating: Omit<UserRating, 'id' | 'created_at' 
       song_name: rating.song_name,
       album_name: rating.album_name,
       artist_name: rating.artist_name,
-      genre: rating.genre
+      artist_id: rating.artist_id, // Saving Artist ID for collection links
+      genre: rating.genre,
+      album_art_url: rating.album_art_url // New field
     })
     .select()
     .single();
@@ -73,6 +75,43 @@ export const getUserRatings = async (userId: string) => {
     throw new Error(error.message || "Database error fetching ratings");
   }
   return data as UserRating[];
+};
+
+// Fetch unique Artists and Albums for the Collection page
+export const getUserCollection = async (userId: string) => {
+  const ratings = await getUserRatings(userId);
+  
+  // Deduplicate Artists
+  const uniqueArtistsMap = new Map();
+  const uniqueAlbumsMap = new Map();
+
+  ratings.forEach(r => {
+    if (r.artist_id && r.artist_name) {
+      if (!uniqueArtistsMap.has(r.artist_id)) {
+        uniqueArtistsMap.set(r.artist_id, {
+          id: r.artist_id,
+          name: r.artist_name,
+          image: r.album_art_url // Use album art as proxy for artist image
+        });
+      }
+    }
+
+    if (r.album_id && r.album_name) {
+      if (!uniqueAlbumsMap.has(r.album_id)) {
+        uniqueAlbumsMap.set(r.album_id, {
+          id: r.album_id,
+          name: r.album_name,
+          artist: r.artist_name,
+          image: r.album_art_url
+        });
+      }
+    }
+  });
+
+  return {
+    artists: Array.from(uniqueArtistsMap.values()),
+    albums: Array.from(uniqueAlbumsMap.values())
+  };
 };
 
 export const getAlbumRatings = async (userId: string, albumId: string) => {
@@ -185,9 +224,6 @@ export const checkAchievements = async (userId: string, currentRating: number, a
 
     if (!albumError && albumRatingCount === totalTracksInAlbum) {
       await unlockAchievement('album_master');
-      
-      // Optional: Also save the album as "Complete" in album_ratings if you wanted to assume a score
-      // await upsertAlbumRating(albumId, 10); // Logic for another day
     }
 
     // Get total ratings count for 'First Listen' and 'Pro Critic'

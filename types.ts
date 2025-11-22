@@ -45,7 +45,9 @@ export interface UserRating {
   song_name?: string;
   album_name?: string;
   artist_name?: string;
+  artist_id?: string; // New field to link back to artist page
   genre?: string;
+  album_art_url?: string; // New field for cover art
   created_at?: string;
 }
 

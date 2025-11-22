@@ -1,5 +1,6 @@
+
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './services/supabaseService';
 import { Session } from '@supabase/supabase-js';
 
@@ -15,18 +16,7 @@ import Album from './pages/Album';
 import Stats from './pages/Stats';
 import Achievements from './pages/Achievements';
 import Profile from './pages/Profile';
-
-// Simple Collection Page (reusing logic for demo)
-const Collection = () => (
-  <div className="p-6 pb-24 max-w-2xl mx-auto">
-    <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">My Collection</h1>
-    <p className="text-gray-500">Albums you have completed will appear here.</p>
-    {/* In a full app, query 'completed_albums' table */}
-    <div className="mt-8 text-center py-12 bg-white dark:bg-dark-800 rounded-xl border border-dashed border-gray-300 dark:border-dark-600">
-       <p className="text-gray-400">Start rating albums to build your collection!</p>
-    </div>
-  </div>
-);
+import Collection from './pages/Collection';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -34,15 +24,20 @@ const App: React.FC = () => {
 
   useEffect(() => {
     // 0. Check for Spotify Auth Callback (Hash)
-    // When using BrowserRouter, the hash is preserved in window.location.hash
+    // When using HashRouter, the hash contains the route AND possibly the query params from Spotify
     const hash = window.location.hash;
+    
+    // Spotify returns: http://domain/#access_token=...
+    // HashRouter sees: Route = #access_token=...
     if (hash && hash.includes('access_token')) {
-      const params = new URLSearchParams(hash.substring(1)); // remove the #
-      const token = params.get('access_token');
+      // Extract token roughly
+      const tokenMatch = hash.match(/access_token=([^&]*)/);
+      const token = tokenMatch ? tokenMatch[1] : null;
+      
       if (token) {
         localStorage.setItem('spotify_user_token', token);
-        // Clear hash to clean URL so it doesn't look messy
-        window.history.pushState("", document.title, window.location.pathname);
+        // Reset hash to root so HashRouter navigates to Home
+        window.location.hash = '/';
       }
     }
 

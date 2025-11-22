@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { getUserRatings, supabase } from '../services/supabaseService';
 import { UserRating } from '../types';
@@ -185,11 +186,17 @@ const Home: React.FC = () => {
             recentRatings.map((rating) => (
               <div key={rating.id || rating.song_id} className="bg-white dark:bg-dark-800 p-3 rounded-xl border border-gray-100 dark:border-dark-700 flex items-center justify-between shadow-sm">
                 <div className="flex items-center space-x-3 overflow-hidden">
-                  <div className="w-10 h-10 bg-gray-200 dark:bg-dark-700 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-bold text-gray-500">{rating.rating}</span>
+                  
+                  {/* Render Image if available */}
+                  <div className="w-10 h-10 bg-gray-200 dark:bg-dark-700 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {rating.album_art_url ? (
+                       <img src={rating.album_art_url} alt="cover" className="w-full h-full object-cover" />
+                    ) : (
+                       <span className="text-xs font-bold text-gray-500">{rating.rating}</span>
+                    )}
                   </div>
+
                   <div className="truncate">
-                    {/* Fallback to Song ID if name is not returned by view */}
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                         {rating.song_name || `Song ID: ${rating.song_id.substring(0, 8)}...`}
                     </p>
@@ -198,7 +205,8 @@ const Home: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                <div className="flex space-x-1">
+                <div className="flex space-x-1 items-center">
+                  <span className="text-xs font-bold mr-2 text-gray-400">{rating.rating}</span>
                   {[...Array(Math.min(rating.rating, 5))].map((_, i) => (
                      <div key={i} className="w-1.5 h-1.5 rounded-full bg-brand-500" />
                   ))}

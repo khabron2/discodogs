@@ -23,26 +23,29 @@ export const ACHIEVEMENTS_LIST = [
 // SQL Setup Script for error handling UI
 export const SQL_SETUP_SCRIPT = `
 -- ==============================
--- 0. Limpieza (CUIDADO: Borra datos)
+-- 0. Limpieza TOTAL
 -- ==============================
--- DROP VIEW IF EXISTS ratings CASCADE;
--- DROP FUNCTION IF EXISTS ratings_upsert CASCADE;
--- DROP TABLE IF EXISTS song_ratings CASCADE;
--- ... (Solo ejecutar drops si quieres reiniciar todo)
+DROP VIEW IF EXISTS ratings CASCADE;
+DROP FUNCTION IF EXISTS ratings_upsert CASCADE;
+DROP TABLE IF EXISTS song_ratings CASCADE;
+DROP TABLE IF EXISTS album_ratings CASCADE;
+DROP TABLE IF EXISTS user_achievements CASCADE;
+DROP TABLE IF EXISTS achievements CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
 
 -- ==============================
--- 1. Crear tabla users
+-- 1. Users
 -- ==============================
-CREATE TABLE IF NOT EXISTS users (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    email TEXT UNIQUE,
+CREATE TABLE users (
+    id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    email TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- ==============================
--- 2. Crear tabla album_ratings
+-- 2. Album Ratings
 -- ==============================
-CREATE TABLE IF NOT EXISTS album_ratings (
+CREATE TABLE album_ratings (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id uuid REFERENCES users(id) ON DELETE CASCADE,
     album_id TEXT NOT NULL,
@@ -53,20 +56,22 @@ CREATE TABLE IF NOT EXISTS album_ratings (
 );
 
 -- ==============================
--- 3. Crear tabla song_ratings (CON NOMBRES)
+-- 3. Song Ratings (CON ARTIST_ID)
 -- ==============================
-CREATE TABLE IF NOT EXISTS song_ratings (
+CREATE TABLE song_ratings (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id uuid REFERENCES users(id) ON DELETE CASCADE,
     song_id TEXT NOT NULL,
     album_id TEXT NOT NULL,
     rating INTEGER CHECK (rating >= 1 AND rating <= 10),
     
-    -- Columnas de Metadatos (Agregadas para mostrar en Home)
+    -- Metadatos
     song_name TEXT,
     album_name TEXT,
     artist_name TEXT,
+    artist_id TEXT, -- VITAL PARA LA COLECCION
     genre TEXT,
+    album_art_url TEXT,
 
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -74,17 +79,18 @@ CREATE TABLE IF NOT EXISTS song_ratings (
 );
 
 -- ==============================
--- 4. Crear tabla achievements
+-- 4. Achievements
 -- ==============================
-CREATE TABLE IF NOT EXISTS achievements (
+CREATE TABLE achievements (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT,
+    icon TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS user_achievements (
+CREATE TABLE user_achievements (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id uuid REFERENCES users(id) ON DELETE CASCADE,
     achievement_id TEXT REFERENCES achievements(id) ON DELETE CASCADE,
@@ -94,7 +100,7 @@ CREATE TABLE IF NOT EXISTS user_achievements (
 );
 
 -- ==============================
--- 5. Triggers de timestamp
+-- 5. Triggers
 -- ==============================
 CREATE OR REPLACE FUNCTION update_timestamp()
 RETURNS trigger AS $$
@@ -104,13 +110,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Asignar triggers si no existen (postgresql no tiene "create trigger if not exists" nativo simple, 
--- pero ejecutar esto sobreescribira o dará error si ya existe, seguro de ignorar en setup manual)
-DROP TRIGGER IF EXISTS trg_song_ratings_timestamp ON song_ratings;
-CREATE TRIGGER trg_song_ratings_timestamp BEFORE UPDATE ON song_ratings FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+CREATE TRIGGER trg_update_users BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+CREATE TRIGGER trg_update_album_ratings BEFORE UPDATE ON album_ratings FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+CREATE TRIGGER trg_update_song_ratings BEFORE UPDATE ON song_ratings FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 
 -- ==============================
--- 6. Crear vista ratings (CON NOMBRES)
+-- 6. Vista Ratings
 -- ==============================
 CREATE OR REPLACE VIEW ratings AS
 SELECT
@@ -122,26 +127,36 @@ SELECT
     sr.song_name,
     sr.album_name,
     sr.artist_name,
+    sr.artist_id, -- INCLUIDO
     sr.genre,
+    sr.album_art_url,
     sr.created_at,
     sr.updated_at
 FROM song_ratings sr;
 
 -- ==============================
--- 7. Trigger de upsert para la vista ratings (CON NOMBRES)
+-- 7. Trigger Upsert
 -- ==============================
 CREATE OR REPLACE FUNCTION ratings_upsert()
 RETURNS trigger AS $$
 BEGIN
     IF (TG_OP = 'INSERT') THEN
-        INSERT INTO song_ratings(user_id, song_id, album_id, rating, song_name, album_name, artist_name, genre)
-        VALUES (NEW.user_id, NEW.song_id, NEW.album_id, NEW.rating, NEW.song_name, NEW.album_name, NEW.artist_name, NEW.genre)
+        INSERT INTO song_ratings(
+            user_id, song_id, album_id, rating, 
+            song_name, album_name, artist_name, artist_id, genre, album_art_url
+        )
+        VALUES (
+            NEW.user_id, NEW.song_id, NEW.album_id, NEW.rating, 
+            NEW.song_name, NEW.album_name, NEW.artist_name, NEW.artist_id, NEW.genre, NEW.album_art_url
+        )
         ON CONFLICT (user_id, song_id)
         DO UPDATE SET 
             rating = EXCLUDED.rating,
             song_name = EXCLUDED.song_name,
             album_name = EXCLUDED.album_name,
             artist_name = EXCLUDED.artist_name,
+            artist_id = EXCLUDED.artist_id,
+            album_art_url = EXCLUDED.album_art_url,
             updated_at = NOW();
         RETURN NEW;
     ELSIF (TG_OP = 'UPDATE') THEN
@@ -150,7 +165,9 @@ BEGIN
             song_name = NEW.song_name,
             album_name = NEW.album_name,
             artist_name = NEW.artist_name,
+            artist_id = NEW.artist_id,
             genre = NEW.genre,
+            album_art_url = NEW.album_art_url,
             updated_at = NOW()
         WHERE user_id = NEW.user_id AND song_id = NEW.song_id;
         RETURN NEW;
@@ -159,7 +176,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS trg_ratings_upsert ON ratings;
 CREATE TRIGGER trg_ratings_upsert
 INSTEAD OF INSERT OR UPDATE ON ratings
 FOR EACH ROW EXECUTE PROCEDURE ratings_upsert();
@@ -167,7 +183,27 @@ FOR EACH ROW EXECUTE PROCEDURE ratings_upsert();
 -- ==============================
 -- 8. RLS
 -- ==============================
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE album_ratings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE song_ratings ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public song_ratings" ON song_ratings;
-CREATE POLICY "Public song_ratings" ON song_ratings FOR ALL USING (true);
+ALTER TABLE user_achievements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE achievements ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users all own data" ON users FOR ALL USING (auth.uid() = id);
+CREATE POLICY "Users all own song_ratings" ON song_ratings FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users all own album_ratings" ON album_ratings FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users all own achievements" ON user_achievements FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Public read achievements" ON achievements FOR SELECT USING (true);
+
+-- ==============================
+-- 9. Seed
+-- ==============================
+INSERT INTO achievements (id, name, description, icon) VALUES
+('first_listen', 'First Note', 'Rate your first song', 'music'),
+('album_master', 'First Disco', 'Complete an entire album', 'disc'),
+('critic', 'Pro Critic', 'Rate 50 songs', 'pen-tool'),
+('top_rater', 'Top Rater', 'Give a 10/10 rating', 'star'),
+('night_owl', 'Musical Night', 'Rate a song after midnight', 'moon'),
+('marathon', 'Discography Finished', 'Rate all albums by one artist', 'award')
+ON CONFLICT (id) DO NOTHING;
 `;

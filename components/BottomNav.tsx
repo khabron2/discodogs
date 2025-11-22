@@ -17,7 +17,9 @@ const BottomNav: React.FC = () => {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-dark-800/90 backdrop-blur-lg border-t border-gray-200 dark:border-dark-700 z-50 pb-safe">
+    // Changed background to fully opaque dark-800 to match theme-color meta tag
+    // This creates the illusion that the app extends behind the system navigation bar
+    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-dark-800 border-t border-gray-200 dark:border-dark-700 z-50 pb-safe">
       <div className="flex justify-around items-center h-16">
         {navItems.map((item) => (
           <button
