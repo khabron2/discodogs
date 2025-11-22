@@ -17,9 +17,12 @@ const BottomNav: React.FC = () => {
   ];
 
   return (
-    // Changed background to fully opaque dark-800 to match theme-color meta tag
-    // This creates the illusion that the app extends behind the system navigation bar
-    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-dark-800 border-t border-gray-200 dark:border-dark-700 z-50 pb-safe">
+    // Removed border-t and ensured exact hex match with theme-color (#181818)
+    // This blends the app navigation with the Android system navigation bar
+    <div 
+      className="fixed bottom-0 left-0 right-0 z-50 pb-safe"
+      style={{ backgroundColor: '#181818' }} 
+    >
       <div className="flex justify-around items-center h-16">
         {navItems.map((item) => (
           <button
@@ -27,8 +30,8 @@ const BottomNav: React.FC = () => {
             onClick={() => navigate(item.path)}
             className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${
               isActive(item.path) 
-                ? 'text-brand-500 dark:text-brand-500' 
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                ? 'text-brand-500' 
+                : 'text-gray-500 hover:text-gray-300'
             }`}
           >
             <item.icon size={22} strokeWidth={isActive(item.path) ? 2.5 : 2} />
