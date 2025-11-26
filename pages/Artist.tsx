@@ -1,26 +1,73 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getArtist, getArtistAlbums } from '../services/spotifyService';
-import { SpotifyArtist, SpotifyAlbum } from '../types';
-import { ArrowLeft, Disc, ExternalLink } from 'lucide-react';
+import { getArtist, getArtistAlbums, getArtistTopTracks } from '../services/spotifyService';
+import { getArtistTopRated, supabase } from '../services/supabaseService';
+import { SpotifyArtist, SpotifyAlbum, SpotifyTrack } from '../types';
+import { ArrowLeft, Disc, ExternalLink, TrendingUp, Play, Star } from 'lucide-react';
+
+// Extended type to handle mixed data (Spotify API vs Local DB)
+interface DisplayTrack extends Partial<SpotifyTrack> {
+  userRating?: number;
+  albumImage?: string;
+  albumName?: string;
+}
 
 const Artist: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [artist, setArtist] = useState<SpotifyArtist | null>(null);
   const [albums, setAlbums] = useState<SpotifyAlbum[]>([]);
+  const [topTracks, setTopTracks] = useState<DisplayTrack[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isUserStats, setIsUserStats] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     const fetchData = async () => {
       try {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        // Parallel fetch for static data
         const [artistData, albumData] = await Promise.all([
           getArtist(id),
           getArtistAlbums(id)
         ]);
+        
         setArtist(artistData);
         setAlbums(albumData);
+
+        // LOGIC: Top Tracks based on User Scores first
+        let tracksToDisplay: DisplayTrack[] = [];
+        let usingUserStats = false;
+
+        if (user) {
+          const userTopRated = await getArtistTopRated(user.id, id);
+          if (userTopRated && userTopRated.length > 0) {
+            usingUserStats = true;
+            tracksToDisplay = userTopRated.map(r => ({
+              id: r.song_id,
+              name: r.song_name,
+              userRating: r.rating,
+              album: { id: r.album_id, name: r.album_name || '', images: [] } as any,
+              albumImage: r.album_art_url,
+              albumName: r.album_name
+            }));
+          }
+        }
+
+        // Fallback: If no user ratings, use Spotify Popular tracks
+        if (!usingUserStats) {
+          const spotifyTop = await getArtistTopTracks(id);
+          tracksToDisplay = spotifyTop.map(t => ({
+             ...t,
+             albumImage: t.album?.images[2]?.url || t.album?.images[0]?.url,
+             albumName: t.album?.name
+          }));
+        }
+
+        setTopTracks(tracksToDisplay);
+        setIsUserStats(usingUserStats);
+
       } catch (error) {
         console.error(error);
       } finally {
@@ -70,8 +117,75 @@ const Artist: React.FC = () => {
         </div>
       </div>
 
+      {/* Top Tracks Section */}
+      <div className="p-6 pb-2 max-w-2xl mx-auto">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center justify-between">
+          <div className="flex items-center">
+            {isUserStats ? (
+              <Star className="mr-2 text-brand-500" size={20} fill="currentColor" />
+            ) : (
+              <TrendingUp className="mr-2 text-brand-500" size={20} />
+            )}
+            {isUserStats ? "Your Top Rated" : "Popular on Spotify"}
+          </div>
+          {isUserStats && (
+            <span className="text-[10px] uppercase bg-brand-900/30 text-brand-400 px-2 py-1 rounded font-bold">
+              Based on your scores
+            </span>
+          )}
+        </h2>
+        
+        <div className="space-y-2 mb-8">
+          {topTracks.map((track, index) => (
+            <Link 
+              to={`/album/${track.album?.id}`} 
+              key={track.id || index}
+              className="flex items-center p-2 rounded-lg hover:bg-white dark:hover:bg-dark-800 transition-colors group"
+            >
+              {/* If User Stats, show Score. If Spotify, show Index */}
+              <div className="w-8 text-center flex-shrink-0 flex justify-center">
+                {isUserStats && track.userRating ? (
+                  <div className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold text-white ${
+                    track.userRating >= 9 ? 'bg-brand-500' : 
+                    track.userRating >= 7 ? 'bg-brand-600' : 'bg-gray-500'
+                  }`}>
+                    {track.userRating}
+                  </div>
+                ) : (
+                  <span className="text-sm font-bold text-gray-400">{index + 1}</span>
+                )}
+              </div>
+
+              <img 
+                src={track.albumImage || 'https://via.placeholder.com/40'} 
+                alt={track.albumName}
+                className="w-10 h-10 rounded-md object-cover mr-3 flex-shrink-0 bg-gray-200"
+              />
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate group-hover:text-brand-500 transition-colors">
+                  {track.name}
+                </h3>
+                <p className="text-xs text-gray-500 truncate">
+                  {track.albumName}
+                </p>
+              </div>
+              
+              {track.duration_ms && (
+                 <div className="text-xs text-gray-400 ml-2">
+                   {Math.floor(track.duration_ms / 60000)}:{(Math.floor((track.duration_ms % 60000) / 1000)).toString().padStart(2, '0')}
+                 </div>
+              )}
+            </Link>
+          ))}
+          
+          {topTracks.length === 0 && (
+             <div className="text-gray-500 text-sm italic p-2">No tracks available.</div>
+          )}
+        </div>
+      </div>
+
       {/* Discography */}
-      <div className="p-6 max-w-2xl mx-auto">
+      <div className="px-6 pb-6 max-w-2xl mx-auto">
         <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center">
           <Disc className="mr-2 text-brand-500" size={20} />
           Discography

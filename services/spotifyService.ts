@@ -1,3 +1,4 @@
+
 import { SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET } from '../constants';
 import { SpotifyAlbum, SpotifyArtist, SpotifyTrack } from '../types';
 
@@ -111,6 +112,12 @@ export const searchArtists = async (query: string): Promise<SpotifyArtist[]> => 
 
 export const getArtist = async (id: string): Promise<SpotifyArtist> => {
   return fetchSpotifyApp(`/artists/${id}`);
+};
+
+export const getArtistTopTracks = async (artistId: string): Promise<SpotifyTrack[]> => {
+  // Market 'US' is standard for generic popularity
+  const data = await fetchSpotifyApp(`/artists/${artistId}/top-tracks?market=US`);
+  return data.tracks.slice(0, 5);
 };
 
 export const getArtistAlbums = async (artistId: string): Promise<SpotifyAlbum[]> => {

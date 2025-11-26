@@ -2,13 +2,14 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getUserCollection, supabase } from '../services/supabaseService';
-import { Disc, Mic2, ChevronRight } from 'lucide-react';
+import { Disc, Mic2, ChevronRight, Star } from 'lucide-react';
 
 interface CollectionItem {
   id: string;
   name: string;
   image?: string;
   artist?: string;
+  averageRating?: number;
 }
 
 const Collection: React.FC = () => {
@@ -113,6 +114,14 @@ const Collection: React.FC = () => {
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                    
+                    {/* Average Rating Badge */}
+                    {album.averageRating !== undefined && (
+                      <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-md px-1.5 py-0.5 rounded-md flex items-center border border-white/10 shadow-sm">
+                         <Star size={10} className="text-yellow-400 mr-1" fill="currentColor" />
+                         <span className="text-[10px] font-bold text-white">{album.averageRating}</span>
+                      </div>
+                    )}
                   </div>
                   <h3 className="font-medium text-gray-900 dark:text-white text-sm leading-tight line-clamp-1">
                     {album.name}

@@ -77,15 +77,41 @@ export const getUserRatings = async (userId: string) => {
   return data as UserRating[];
 };
 
+// NEW: Get Top Rated songs for a specific artist by the user
+export const getArtistTopRated = async (userId: string, artistId: string) => {
+  const { data, error } = await supabase
+    .from('ratings')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('artist_id', artistId)
+    .order('rating', { ascending: false }) // Highest score first
+    .limit(5);
+
+  if (error) {
+    console.error("Error fetching artist top rated:", error);
+    return [];
+  }
+  return data as UserRating[];
+};
+
 // Fetch unique Artists and Albums for the Collection page
 export const getUserCollection = async (userId: string) => {
   const ratings = await getUserRatings(userId);
   
   // Deduplicate Artists
   const uniqueArtistsMap = new Map();
-  const uniqueAlbumsMap = new Map();
+  // Map to store album details + running totals for average calculation
+  const albumsStatsMap = new Map<string, { 
+    id: string; 
+    name: string; 
+    artist: string; 
+    image: string; 
+    totalScore: number; 
+    count: number; 
+  }>();
 
   ratings.forEach(r => {
+    // Process Artists
     if (r.artist_id && r.artist_name) {
       if (!uniqueArtistsMap.has(r.artist_id)) {
         uniqueArtistsMap.set(r.artist_id, {
@@ -96,21 +122,37 @@ export const getUserCollection = async (userId: string) => {
       }
     }
 
+    // Process Albums & Calculate Average
     if (r.album_id && r.album_name) {
-      if (!uniqueAlbumsMap.has(r.album_id)) {
-        uniqueAlbumsMap.set(r.album_id, {
+      if (!albumsStatsMap.has(r.album_id)) {
+        albumsStatsMap.set(r.album_id, {
           id: r.album_id,
           name: r.album_name,
-          artist: r.artist_name,
-          image: r.album_art_url
+          artist: r.artist_name || 'Unknown',
+          image: r.album_art_url || '',
+          totalScore: 0,
+          count: 0
         });
       }
+      
+      const album = albumsStatsMap.get(r.album_id)!;
+      album.totalScore += r.rating;
+      album.count += 1;
     }
   });
 
+  // Convert map to array and compute final average
+  const albumsArray = Array.from(albumsStatsMap.values()).map(a => ({
+    id: a.id,
+    name: a.name,
+    artist: a.artist,
+    image: a.image,
+    averageRating: parseFloat((a.totalScore / a.count).toFixed(1))
+  }));
+
   return {
     artists: Array.from(uniqueArtistsMap.values()),
-    albums: Array.from(uniqueAlbumsMap.values())
+    albums: albumsArray
   };
 };
 
