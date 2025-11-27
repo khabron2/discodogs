@@ -20,8 +20,13 @@ const Artist: React.FC = () => {
   const [topTracks, setTopTracks] = useState<DisplayTrack[]>([]);
   const [loading, setLoading] = useState(true);
   const [isUserStats, setIsUserStats] = useState(false);
+  const [musicPref, setMusicPref] = useState('spotify');
 
   useEffect(() => {
+    // Check music preference
+    const pref = localStorage.getItem('music_preference') || 'spotify';
+    setMusicPref(pref);
+
     if (!id) return;
     const fetchData = async () => {
       try {
@@ -77,10 +82,15 @@ const Artist: React.FC = () => {
     fetchData();
   }, [id]);
 
-  const openYouTubeMusic = () => {
+  const handleHeaderAction = () => {
     if (!artist) return;
-    const query = encodeURIComponent(artist.name);
-    window.open(`https://music.youtube.com/search?q=${query}`, '_blank');
+    if (musicPref === 'ytmusic') {
+      const query = encodeURIComponent(artist.name);
+      window.open(`https://music.youtube.com/search?q=${query}`, '_blank');
+    } else {
+      // Default to opening artist in Spotify web/app or just do nothing/log
+      window.open(`https://open.spotify.com/artist/${artist.id}`, '_blank');
+    }
   };
 
   if (loading) return <div className="p-8 text-center dark:text-white">Loading discography...</div>;
@@ -106,13 +116,15 @@ const Artist: React.FC = () => {
             <p className="text-gray-300 text-sm mt-2 capitalize font-medium opacity-90">{artist.genres.slice(0, 3).join(' • ')}</p>
           </div>
           
-          {/* YT Music Shortcut */}
+          {/* Action Shortcut */}
           <button 
-            onClick={openYouTubeMusic}
-            className="bg-red-600/90 hover:bg-red-600 text-white p-2.5 rounded-full backdrop-blur-sm shadow-lg transition-all hover:scale-105"
-            title="Listen on YouTube Music"
+            onClick={handleHeaderAction}
+            className={`p-2.5 rounded-full backdrop-blur-sm shadow-lg transition-all hover:scale-105 text-white ${
+              musicPref === 'ytmusic' ? 'bg-red-600/90 hover:bg-red-600' : 'bg-brand-500/90 hover:bg-brand-500'
+            }`}
+            title={musicPref === 'ytmusic' ? "Listen on YouTube Music" : "Listen on Spotify"}
           >
-            <ExternalLink size={20} />
+            {musicPref === 'ytmusic' ? <Play size={20} fill="currentColor" /> : <ExternalLink size={20} />}
           </button>
         </div>
       </div>

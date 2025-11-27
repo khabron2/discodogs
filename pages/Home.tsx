@@ -5,7 +5,6 @@ import { UserRating } from '../types';
 import { Star, TrendingUp, Clock, Disc, Database, Copy, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SQL_SETUP_SCRIPT } from '../constants';
-import NowPlaying from '../components/NowPlaying';
 
 const Home: React.FC = () => {
   const [recentRatings, setRecentRatings] = useState<UserRating[]>([]);
@@ -127,10 +126,7 @@ const Home: React.FC = () => {
         </div>
       </header>
 
-      {/* NEW: Now Playing Widget */}
-      <section>
-        <NowPlaying />
-      </section>
+      {/* REMOVED NowPlaying Widget as requested */}
 
       {/* Error Banner (Non-critical) */}
       {error && !needsSetup && (

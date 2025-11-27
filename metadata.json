@@ -1,5 +1,5 @@
 {
-  "name": "DiscogStats",
+  "name": "DiscogStats el que funciona",
   "description": "A mobile-first music companion to explore discographies, rate songs, track stats, and unlock achievements using Spotify and Supabase.",
   "requestFramePermissions": []
 }

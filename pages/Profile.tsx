@@ -1,10 +1,12 @@
+
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseService';
-import { User, LogOut, Moon, Sun, Database } from 'lucide-react';
+import { User, LogOut, Moon, Sun, Database, Music } from 'lucide-react';
 
 const Profile: React.FC = () => {
   const [email, setEmail] = useState('');
   const [isDark, setIsDark] = useState(true);
+  const [musicProvider, setMusicProvider] = useState<'spotify' | 'ytmusic'>('spotify');
 
   useEffect(() => {
     const checkUser = async () => {
@@ -18,6 +20,12 @@ const Profile: React.FC = () => {
       setIsDark(true);
     } else {
       setIsDark(false);
+    }
+
+    // Music Provider Check
+    const savedProvider = localStorage.getItem('music_preference');
+    if (savedProvider === 'ytmusic') {
+      setMusicProvider('ytmusic');
     }
   }, []);
 
@@ -36,6 +44,11 @@ const Profile: React.FC = () => {
     }
   };
 
+  const handleProviderChange = (provider: 'spotify' | 'ytmusic') => {
+    setMusicProvider(provider);
+    localStorage.setItem('music_preference', provider);
+  };
+
   return (
     <div className="p-6 pb-24 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-8 text-gray-900 dark:text-white">Profile</h1>
@@ -52,6 +65,8 @@ const Profile: React.FC = () => {
 
       <div className="space-y-4">
         <div className="bg-white dark:bg-dark-800 rounded-xl shadow-sm border border-gray-100 dark:border-dark-700 overflow-hidden">
+          
+          {/* Theme Toggle */}
           <button 
             onClick={toggleTheme}
             className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
@@ -65,6 +80,30 @@ const Profile: React.FC = () => {
             </div>
           </button>
 
+          <div className="h-px bg-gray-100 dark:bg-dark-700 mx-4" />
+
+          {/* Music Provider Preference */}
+          <div className="p-4 flex items-center justify-between">
+            <div className="flex items-center text-gray-700 dark:text-gray-200">
+              <Music size={20} className="mr-3" />
+              <span className="font-medium">Music Provider</span>
+            </div>
+            <div className="flex bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
+              <button 
+                onClick={() => handleProviderChange('spotify')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${musicProvider === 'spotify' ? 'bg-white dark:bg-dark-600 shadow-sm text-brand-600 dark:text-brand-400' : 'text-gray-500 dark:text-gray-400'}`}
+              >
+                Spotify
+              </button>
+              <button 
+                onClick={() => handleProviderChange('ytmusic')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${musicProvider === 'ytmusic' ? 'bg-white dark:bg-dark-600 shadow-sm text-red-500' : 'text-gray-500 dark:text-gray-400'}`}
+              >
+                YT Music
+              </button>
+            </div>
+          </div>
+          
           <div className="h-px bg-gray-100 dark:bg-dark-700 mx-4" />
           
            {/* Instructions for DB Setup */}

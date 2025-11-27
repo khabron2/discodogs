@@ -72,7 +72,15 @@ const SCOPES = [
 ];
 
 export const authorizeSpotifyUser = () => {
-  const redirectUri = window.location.origin; // Returns to the root of the app
+  // Normalize redirect URI: Remove trailing slash if present to ensure exact match with Dashboard
+  let redirectUri = window.location.origin;
+  if (redirectUri.endsWith('/')) {
+    redirectUri = redirectUri.slice(0, -1);
+  }
+
+  console.log("Redirecting to Spotify with URI:", redirectUri);
+  console.log("IMPORTANT: This URI must be added to 'Redirect URIs' in Spotify Developer Dashboard");
+
   const authUrl = new URL('https://accounts.spotify.com/authorize');
   authUrl.searchParams.append('client_id', SPOTIFY_CLIENT_ID);
   authUrl.searchParams.append('response_type', 'token'); // Implicit grant for simplicity in this demo

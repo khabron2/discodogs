@@ -30,14 +30,22 @@ const App: React.FC = () => {
     // Spotify returns: http://domain/#access_token=...
     // HashRouter sees: Route = #access_token=...
     if (hash && hash.includes('access_token')) {
-      // Extract token roughly
-      const tokenMatch = hash.match(/access_token=([^&]*)/);
-      const token = tokenMatch ? tokenMatch[1] : null;
-      
-      if (token) {
-        localStorage.setItem('spotify_user_token', token);
-        // Reset hash to root so HashRouter navigates to Home
-        window.location.hash = '/';
+      try {
+        // Extract token roughly
+        const tokenMatch = hash.match(/access_token=([^&]*)/);
+        const token = tokenMatch ? tokenMatch[1] : null;
+        
+        if (token) {
+          localStorage.setItem('spotify_user_token', token);
+          console.log("Spotify token saved successfully");
+          // Clean URL immediately to avoid router confusion
+          // Use setTimeout to allow React to process before navigation
+          setTimeout(() => {
+             window.location.hash = '/';
+          }, 100);
+        }
+      } catch (e) {
+        console.error("Error parsing spotify token", e);
       }
     }
 

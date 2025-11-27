@@ -4,7 +4,7 @@ import { useParams, Link } from 'react-router-dom';
 import { getAlbumDetails } from '../services/spotifyService';
 import { upsertRating, getAlbumRatings, checkAchievements, supabase } from '../services/supabaseService';
 import { SpotifyAlbum, SpotifyTrack } from '../types';
-import { ArrowLeft, PlayCircle, ExternalLink, Play } from 'lucide-react';
+import { ArrowLeft, PlayCircle, Play, ExternalLink } from 'lucide-react';
 
 const Album: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -12,10 +12,15 @@ const Album: React.FC = () => {
   const [tracks, setTracks] = useState<SpotifyTrack[]>([]);
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [musicPref, setMusicPref] = useState('spotify');
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [saving, setSaving] = useState<string | null>(null);
 
   useEffect(() => {
+    // Check music preference
+    const pref = localStorage.getItem('music_preference') || 'spotify';
+    setMusicPref(pref);
+
     if (!id) return;
     const fetchData = async () => {
       try {
@@ -92,6 +97,8 @@ const Album: React.FC = () => {
   if (loading) return <div className="p-8 text-center dark:text-white">Loading album...</div>;
   if (!album) return <div className="p-8 text-center dark:text-white">Album not found</div>;
 
+  const isYTPref = musicPref === 'ytmusic';
+
   return (
     <div className="pb-24 bg-gray-50 dark:bg-dark-900 min-h-screen">
       {/* Header */}
@@ -123,10 +130,14 @@ const Album: React.FC = () => {
             <div className="flex justify-center sm:justify-start space-x-3">
               <button 
                 onClick={openYouTubeMusic}
-                className="flex items-center px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs font-bold text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                className={`flex items-center px-4 py-2.5 rounded-full text-xs font-bold transition-all shadow-sm ${
+                  isYTPref 
+                    ? 'bg-red-600 hover:bg-red-700 text-white border border-red-600' 
+                    : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'
+                }`}
               >
-                <Music size={16} className="mr-2 text-brand-500" />
-                YouTube Music
+                <PlayCircle size={16} className={`mr-2 ${isYTPref ? 'text-white' : 'text-red-600'}`} />
+                {isYTPref ? 'Play on YT Music' : 'YouTube Music'}
               </button>
             </div>
           </div>
@@ -159,7 +170,7 @@ const Album: React.FC = () => {
                    )}
                  </div>
                  
-                 {/* Rating UI - Compact Bar */}
+                 {/* Rating UI - Compact Bar with Flex-1 for perfect fit */}
                  <div className="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-dark-700 mt-1">
                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mr-3 w-6">Rate</span>
                    <div className="flex-1 flex gap-[2px]">
@@ -186,14 +197,5 @@ const Album: React.FC = () => {
     </div>
   );
 };
-
-// Helper icon for the button
-const Music = ({ size, className }: { size: number, className?: string }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M9 18V5l12-2v13" />
-      <circle cx="6" cy="18" r="3" />
-      <circle cx="18" cy="16" r="3" />
-    </svg>
-);
 
 export default Album;
